@@ -527,7 +527,7 @@ class Training:
 					print("Training: Epoch: %d, inversion loss: %1.3e" % (epoch, train_save[epoch]) ,\
 						", inversion acc : %.6f%%"  % (train_acc_save[epoch]), \
 						", KL : %1.3e"  % (train_KL_save[epoch]), \
-						", Encoder_tune: %1.3e" % (train_enc_save[epoch]), \
+						", Encoder_reconstraint: %1.3e" % (train_enc_save[epoch]), \
 						', current lr: %1.3e' % (opt.param_groups[0]['lr']))
 				#===========================================#
 				else:
@@ -596,7 +596,7 @@ class Training:
 					print("Testing: inversion loss: %1.3e" % (test_save[epoch]) ,\
 						", inversion acc : %.6f%%"  % (test_acc_save[epoch]), \
 						", KL : %1.3e"  % (test_KL_save[epoch]),\
-						", Encoder_tune: %1.3e" % (test_enc_save[epoch]))
+						", Encoder_reconstraint: %1.3e" % (test_enc_save[epoch]))
 				#===========================================#
 
 				else:
@@ -623,9 +623,52 @@ class Training:
 				
 				#===========================================#
 				if EN != None:
-					TT_plot(PATH, train_enc_save, test_enc_save, 'Encoder tuning', yscale = 'semilogy')
+					TT_plot(PATH, train_enc_save, test_enc_save, 'Encoder_reconstraint', yscale = 'semilogy')
 				#===========================================#
 			#-------------------------------------------------------------------------#
 
 		return 0
 		#-----------------------------------------------------------------------------------------#
+
+
+#----------------------------------------------------------------#
+# load trained model
+# Inputs:
+#       device: cpu or gpu
+#       folder_name: where to find trained models
+#       X,Y: training dataset, to obtain dimension information
+#       para_dim: number of model input parameters, excluding the aux data dimension
+#       encoder_paras, nf_paras, var_paras, decoder_paras: hidden/ layer/ act/ BN info for models
+#       latent_plus: if needed, expand latent dimensions
+# Outputs: 
+#      Encoder, NF, Decoder: trained model loaded
+def model_loading(device, folder_name, X,Y, para_dim, encoder_para, nf_para, vae_para, decoder_para, latent_plus = 0):
+	
+	#-----------------------------load model------------------------------------------------#
+	Trainer = Training(X,Y,para_dim,latent_plus = latent_plus) # use training data to get the dimension information only
+	Encoder, NF, Decoder = Trainer.Define_Models(device, encoder_para, nf_para, vae_para, decoder_para)
+
+	# load trained weights for encoder
+	encoder_path = folder_name + '/Encoder_model.pth'
+	if os.path.exists(encoder_path):
+		Encoder.load_state_dict(torch.load(encoder_path, map_location=device)) # load learned weights
+	else:
+		pass
+
+	# load trained weights for NF
+	nf_path = folder_name + '/NF_model.pth'
+	if os.path.exists(nf_path):
+		NF.load_state_dict(torch.load(nf_path, map_location=device)) # load learned weights
+	else:
+		pass
+
+	# load trained weights for Variational decoder
+	decoder_path = folder_name + '/Decoder_model.pth'
+	if os.path.exists(decoder_path):
+		Decoder.load_state_dict(torch.load(decoder_path, map_location=device)) # load learned weights
+	else: 
+		pass
+	#--------------------------------------------------------------------------------------#
+
+	return Encoder, NF, Decoder
+#----------------------------------------------------------------#

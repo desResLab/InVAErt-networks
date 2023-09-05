@@ -130,6 +130,7 @@ class VAEDecoder(nn.Module):
 		# build decoder as MLP
 		self.Decoder     = MLP_nonlinear(self.Din, self.Dout, self.DHid, self.DhL, act=self.Dact)
 
+	#----------------------------------------------------------------------------------------#
 	# the reparameterization trick for back prop
 	# Inputs:
 	#       mu : learned mean of the latent var
@@ -155,7 +156,9 @@ class VAEDecoder(nn.Module):
 		# in testing, just use the learned mean
 		else: 
 			return mu
+	#-----------------------------------------------------------------------------------------#
 
+	#-----------------------------------------------------------------------------------------#
 	# Eval KL divergence via learned mu and logvar, take batch mean 
 	# Input: 
 	#      mu: batched mean vector
@@ -169,8 +172,9 @@ class VAEDecoder(nn.Module):
 			KL_loss += 0.5 * ( logvar[:,i].exp() - logvar[:,i] - 1 + mu[:,i].pow(2) )
 		# take mini-batch mean
 		return  torch.mean( KL_loss, dim = 0)
+	#-----------------------------------------------------------------------------------------#
 
-
+	#-----------------------------------------------------------------------------------------#
 	# forward of VAE+decoder during training and testing
 	# Inputs:
 		# x: sample of model input, i.e. v
@@ -195,8 +199,10 @@ class VAEDecoder(nn.Module):
 
 		# evaluate KL loss and forward the decoder
 		return self.KL(mu, logvar), self.Decoder(y_tilde)
+	#-----------------------------------------------------------------------------------------#
 
 
+	#-----------------------------------------------------------------------------------------#
 	# sampling from N(0,1), the prior, this is the classical way to draw samples from the VAE 
 	# Inputs:
 	# 		num: how many samples needed
@@ -205,9 +211,59 @@ class VAEDecoder(nn.Module):
 		# control seed of torch    
 		torch.manual_seed(seed_control)
 		return torch.normal(0, 1, size = (num, self.latent_dim) ) 
+	#-----------------------------------------------------------------------------------------#
 
 
-	# Inversion prediction and sampling
+	#-----------------------------------------------------------------------------------------#
+	# re-use VAE encoder to draw relevant w samples from training data-dependent post distribution
+	# Inputs: 
+	#         model: trained decoder model+vae
+	#         X  : training samples(parameter only, no aux dataset)
+	#		  datasize:  random subset size of the training data
+	#         subsize: sub-sampling size of each data-dependent posterior distribution (>=2)
+	# Outputs:
+	#         Candidate_set: set of samples of w from the vae encoder
+	#         mu_slice: latent mean of the selected samples
+	#         var_slice: latent var of the selected samples
+	@torch.no_grad()
+	def VAE_encoder_sampling(self, model, X, data_size, sub_size, seed_control = 0):
+
+		model.eval()
+		
+		# Forward the VAE encoder with training data
+		mu_logvar = (model.VAE_encoder(X).view(-1,2, model.latent_dim)).cpu().detach().numpy()
+
+		# split mu and log sig^2
+		mu      = mu_logvar[:,0,:]
+		logvar  = mu_logvar[:,1,:]
+		var     = np.exp(logvar) 
+
+		# take a random subset of X of size S
+		np.random.seed(seed_control)
+		mulogvar_slice  = np.random.choice(len(mu), size = data_size, replace = False) 
+		mu_slice        = mu[mulogvar_slice]
+		var_slice       = var[mulogvar_slice]
+
+		# start sub-sampling for data-dependent post-distribution
+		for i in range(data_size):
+			mean    =  mu_slice[i,:]
+			cov     =  np.diag(var_slice[i,:]) # diagonal matrix in this case
+			
+			# draw w from multi-variate normal of size Q
+			w_set   =  np.random.multivariate_normal(mean, cov, size = sub_size)
+
+			# stacking them
+			if i == 0:
+				Candidate_set  = w_set
+			else:
+				Candidate_set   = np.concatenate((Candidate_set, w_set), axis=0)
+
+		return Candidate_set, mu_slice, var_slice
+	#-----------------------------------------------------------------------------------------#
+
+
+	#-----------------------------------------------------------------------------------------#
+	# Inversion prediction and sampling using N(0,1) prior
 	# Inputs:
 	#       model: trained varational auto-encoder and decoder
 	#       sample_size: number of samples drawn
@@ -220,7 +276,7 @@ class VAEDecoder(nn.Module):
 	#        generated samples of v, i.e. inverse predictions
 	@torch.no_grad()
 	def inversion_sampling(self, model, sample_size, seed_control = 0, \
-														Task = None, y_given = None, w_given = None, denoise = None):
+											Task = None, y_given = None, w_given = None, denoise = None):
 
 		model.eval()
 		# fix y and sample w to learn the non-identifiability
@@ -281,3 +337,52 @@ class VAEDecoder(nn.Module):
 
 		# return inversion samples of v
 		return x_samples.detach().numpy()
+		#-----------------------------------------------------------------------------------------#
+
+
+	#---------------------------------------------------------------------------------------------#
+	# HD sampling method for non-identifiability analysis
+	# Note: the current HD sampling method only works for non-identifibility analysis
+	# Input:
+	#      model: trained decoder model
+	#      w_size: how many w needed
+	#      S: sub size of the training dataset 
+	#      Q: for each training data, subsampling size from the posterior distribution
+	#      inputX: training data input, already scaled if needed
+	#      Seed control: seeds
+	#      Y_given: fixed y
+	#      denoise: if apply the PC sampling to denoise
+	@torch.no_grad()
+	def Decoding_HD(self, model, w_size, S, Q, inputX, seed_control = 0, y_given = None, denoise = None):
+
+		model.eval()
+		
+		# Sampling from the trained VAE encoder
+		data_size      = S
+		sub_size       = Q
+		Candidate_set,mu_slice,var_slice  = model.VAE_encoder_sampling(model, inputX, data_size, sub_size)
+		
+
+		# start to calculate PDF values
+		w_pdf       = 0 # this will be a vector of size S*Q
+		for i in range(data_size):
+			mean    =  mu_slice[i,:]
+			cov     =  np.diag(var_slice[i,:])
+			w_pdf   +=  stats.multivariate_normal.pdf(Candidate_set, mean=mean, cov=cov)
+		
+		# sort sample of w via likelihood 
+		idx_sorted    = sorted(range(len(w_pdf)), key=lambda i: w_pdf[i], reverse=True)
+		Candidate_set = torch.from_numpy(Candidate_set[idx_sorted])
+
+		# take latent variable samples from the top and decode
+		# Note here, we no longer set w_given = None, since we are providing the latent variables
+
+		if denoise == None: # Without using PC sampling to denoise
+			x_samples = model.inversion_sampling(model, w_size, seed_control = seed_control, \
+												Task = 'FixY', y_given = y_given, w_given= Candidate_set[:w_size] )
+		else:
+			x_samples = model.inversion_sampling(model, w_size, seed_control = seed_control, \
+								Task = 'FixY', y_given = y_given, w_given= Candidate_set[:w_size], denoise = denoise )
+	
+		return x_samples
+		#---------------------------------------------------------------------------------------------#

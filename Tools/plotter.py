@@ -254,3 +254,46 @@ def RCR_dynamics_verification(X, y_fix, y_hat, fig_name, y_lim=None):
 	plt.savefig(fig_name, bbox_inches='tight',pad_inches = 0)
 	return 0
 #--------------------------------------------------------------------------#
+
+
+
+#--------------------------------------------------------------------------#
+# checking inverse problem of the sinewave case
+# Inputs:
+#       fig_name: name of the figure
+#       X: inverted samples, v_hat = [k_hat,x_hat]
+#       x: lower-upper bounds of the inverval
+#       y_fix: fixed y value
+def check_sine_wave(fig_name, X, x, y_fix):
+	
+	# create a fixed range of x values
+	x_range = np.linspace(x[0],x[1], 1000)
+	
+	# plot
+	fig, ax = plt.subplots(figsize=(5, 5))
+	
+	# loop tho the inverted samples
+	for i in range(X.shape[0]):
+
+		# plot the curve based on the k_hat and a fixed range of x
+		ax.plot(x_range, np.sin(X[i,0]*x_range), '-b' ,linewidth=1, alpha = 0.03)
+		
+		# plot (x_hat, sin(k_hat * x_hat))
+		if i == 1:
+			ax.plot(X[i,1],np.sin(X[i,0]*X[i,1]),'r^', markersize = 8, alpha=0.3, label='NN')
+		else:
+			ax.plot(X[i,1],np.sin(X[i,0]*X[i,1]),'r^', markersize = 8, alpha=0.2)
+
+	# plt the fixed y value		
+	plt.axhline(y=y_fix, color='k', linestyle='--', alpha = 0.8, linewidth = 2, label= '$y^*$' )
+	plt.xlabel('$x$',fontsize=fs+10)
+	plt.ylabel(r'$\sin(kx)$',fontsize=fs+10)
+	plt.xlim([x[0],x[1]])
+	plt.ylim([-1, 1])
+	plt.locator_params(nbins=5)
+	plt.tick_params(labelsize=fs+6)
+	plt.legend(fontsize=fs+6, markerscale=1)
+	plt.savefig(fig_name, bbox_inches='tight',pad_inches = 0)
+	return 0
+#--------------------------------------------------------------------------#
+

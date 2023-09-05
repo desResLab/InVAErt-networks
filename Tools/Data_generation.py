@@ -1,6 +1,7 @@
 # functions associated with data generation for each of the cases in paper
 	# Case1: simple linear map
 	# Case2: simple nonlinear map, single sine wave
+	# Case2.5: simple nonlinear map, sine waves with periodicity
 	# Case3: RCR model
 	# Case4: Lorenz system
 	# Case5: Reaction-diffusion system
@@ -84,6 +85,49 @@ def Data_single_sine(Sample_size, k, x, Saving, Seed = 0):
 	if Saving == True:
 		np.savetxt('Dataset/single_sine_X.csv', X, delimiter=',')
 		np.savetxt('Dataset/single_sine_Y.csv', Y, delimiter=',')
+
+	return X,Y
+#----------------------------------------------------------------------------------------#
+
+#----------------------------------------------------------------------------------------#
+# Case 2.5: simple nonlinear map, the sine waves with periodicity
+# Inputs:
+#        Sample_size: how many samples to be generated
+#        k           # frequency
+#        x           # input
+#        saving: if save the data
+#        Seed: random seed for repro
+# Outputs:
+#		model input: X, model output: Y
+def Data_sine_waves(Sample_size, k, x, Saving, Seed = 0):
+
+	# init dataset
+	# X: k, x
+	X = np.zeros((Sample_size, 2 ))
+	# y = sin( kx )
+	Y = np.zeros((Sample_size, 1 ))
+
+	# solve the system Sample_size times to gather training samples
+	for example in range(Sample_size):
+
+		if (example + 1)%2000 == 0:
+			print('Data generation: ' + str(example+1) + '/' + str(Sample_size))
+
+		np.random.seed(Seed + example)
+
+		# take uniform random samples
+		k_star     = np.random.uniform( k[0], k[1], 1).item()
+		x_star     = np.random.uniform( x[0], x[1], 1).item()
+
+		# record samples
+		X[example,:] = k_star, x_star
+		Y[example,:] = np.sin(  k_star * ( x_star )  )
+
+
+	# save the data if needed
+	if Saving == True:
+		np.savetxt('Dataset/sine_waves_X.csv', X, delimiter=',')
+		np.savetxt('Dataset/sine_waves_Y.csv', Y, delimiter=',')
 
 	return X,Y
 #----------------------------------------------------------------------------------------#
