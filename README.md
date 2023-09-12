@@ -1,11 +1,11 @@
  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) 
-# InVAErt networks: a data-driven framework for emulation, inference, and identifiability analysis
+# InVAErt networks: a data-driven framework for model synthesis and identifiability analysis
 
 InVAErt networks are designed to perform emulation, inference, and identifiability analysis of physics-based parametric systems.
 
 For additional information, please refer to the publication below:
 
-[InVAErt networks: a data-driven framework for emulation, inference and identifiability analysis](https://arxiv.org/abs/2307.12586), Guoxiang Grayson Tong, [Carlos A. Sing-Long Collao](https://www.ing.uc.cl/academicos-e-investigadores/carlos-alberto-sing-long-collao/), and [Daniele E. Schiavazzi](https://www3.nd.edu/~dschiava/).
+[InVAErt networks: a data-driven framework for model synthesis and identifiability analysis](https://arxiv.org/abs/2307.12586), Guoxiang Grayson Tong, [Carlos A. Sing-Long Collao](https://www.ing.uc.cl/academicos-e-investigadores/carlos-alberto-sing-long-collao/), and [Daniele E. Schiavazzi](https://www3.nd.edu/~dschiava/).
 
 ### Description of the ```Tools``` folder
 1. ```DNN_tools.py```: common functions for deep neural network modeling 
@@ -27,10 +27,12 @@ Note: the Jupyter notebooks are created for illustration purposes thus the hyper
 ### Citation
 Did you find this useful? Please cite us using:
 ```
-@article{tong2023invaert,
-  title={InVAErt networks: a data-driven framework for emulation, inference and identifiability analysis},
-  author={Tong, Guoxiang Grayson and Long, Carlos A Sing and Schiavazzi, Daniele E},
-  journal={arXiv preprint arXiv:2307.12586},
-  year={2023}
+@misc{tong2023invaert,
+      title={InVAErt networks: a data-driven framework for model synthesis and identifiability analysis}, 
+      author={Guoxiang Grayson Tong and Carlos A. Sing Long and Daniele E. Schiavazzi},
+      year={2023},
+      eprint={2307.12586},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG}
 }
 ```
