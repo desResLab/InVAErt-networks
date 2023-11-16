@@ -3,6 +3,7 @@
 	# Case2: simple nonlinear map, single sine wave
 	# Case2.5: simple nonlinear map, sine waves with periodicity
 	# Case3: RCR model
+	# Case3.5: the Lotka–Volterra model
 	# Case4: Lorenz system
 	# Case5: Reaction-diffusion system
 
@@ -249,3 +250,110 @@ def check_RCR_dynamics(Rp, Rd, C):
 	return t_eval, (P_p.y)[0,:]/1333.22
 #----------------------------------------------------------------------------------------#
 
+
+
+
+#----------------------------------------------------------------------------------------#
+# Inputs:
+#         Sample_size: how many samples to be generated
+#         Alpha: range of the parameter alpha
+#         Beta:  range of the parameter beta
+#         Delta: range of the parameter delta
+#         Gamma: range of the parameter gamma
+#         Saving: if true, save the dataset
+#         Seed: random seed for repro
+def Data_PredPrey(Sample_size, Alpha, Beta, Delta, Gamma, Saving, Seed = 0):
+
+	# initialize input mat
+	X = np.zeros((Sample_size,4))     # alpha, beta, delta, gamma
+	Y = np.zeros((Sample_size,2))     # max( y1(t) ), max( y2(t)) y1: prey, y2: predator
+
+	# solve the system Sample_size times to gather training samples
+	for example in range(Sample_size):
+
+		if (example + 1)%2000 == 0:
+			print('Data generation: ' + str(example+1) + '/' + str(Sample_size))
+
+		# seed control
+		np.random.seed(Seed + example)
+
+		# Sample input parameters from uniform prior
+		alpha_star = np.random.uniform(Alpha[0], Alpha[1],1).item()
+		beta_star  = np.random.uniform(Beta[0],  Beta[1],1).item()
+		delta_star = np.random.uniform(Delta[0], Delta[1],1).item()
+		gamma_star = np.random.uniform(Gamma[0], Gamma[1],1).item()
+
+		# define the ode system
+		# ----------------------------------------------------------- #
+		def f(t, state):
+
+			# unpack
+			y1, y2 = state
+
+			return alpha_star * y1 - beta_star * y1 * y2, \
+					delta_star * y1 * y2 - gamma_star * y2
+		# ----------------------------------------------------------- #
+
+		# solve the system 
+		# ----------------------------------------------------------- #
+		state0  = [10.0, 10.0]               # initial condition
+		t_f     = 100                        # final time
+		t_range = [0.0, t_f]                 # total time span to be solved
+		num_t   = 5000                       # total number of time steps 
+		t_eval  = np.linspace(0, t_f, num_t) # output time steps
+
+		# call ivp solver, using 4th order Runge-Kutta
+		y1y2    = solve_ivp(f, t_range, state0, method='RK45', t_eval=t_eval)
+
+		# access solution and only extract the final 1/3 cycles, i.e. when solution is stable
+		sol = y1y2.y[:,round(2*num_t/3):]
+		# ----------------------------------------------------------- #
+
+		# build training dataset
+		X[example, 0] , X[example, 1], X[example, 2], X[example, 3] = alpha_star, beta_star, delta_star, gamma_star
+		Y[example, 0] , Y[example, 1]                				= sol[0,:].max(), sol[1,:].max()
+
+
+	# save the data if needed
+	# ----------------------------------------------------------- #
+	if Saving == True:
+		np.savetxt('Dataset/Lotka-Volterra_X.csv', X, delimiter=',')
+		np.savetxt('Dataset/Lotka-Volterra_Y.csv', Y, delimiter=',')
+	# ----------------------------------------------------------- #
+	
+	return X,Y
+
+# After training, check Lotka–Volterra dynamics from the learned parameters
+# TODO: create class to merge this with the above code
+# Inputs: 
+# 		 alpha, beta, delta, gamma: learned samples (by inverse prediction)
+# Outputs:
+#         t_eval: time instances to evaluate on
+#         Y: time series of y1 and y2
+def check_LV_dynamics(alpha, beta, delta, gamma):
+
+	# solve the system 
+	# ----------------------------------------------------------- #
+	state0  = [10.0, 10.0]               # initial condition
+	t_f     = 100                        # final time
+	t_range = [0.0, t_f]                 # total time span to be solved
+	num_t   = 5000                       # total number of time steps 
+	t_eval  = np.linspace(0, t_f, num_t) # output time steps
+	# ----------------------------------------------------------- #
+
+	# define the ode system
+	# ----------------------------------------------------------- #
+	def f(t, state):
+
+		# unpack
+		y1, y2 = state
+
+		return alpha * y1 - beta * y1 * y2, \
+				delta * y1 * y2 - gamma * y2
+	# ----------------------------------------------------------- #
+
+	# solve
+	y1y2    = solve_ivp(f, t_range, state0, method='RK45', t_eval=t_eval)
+
+	return t_eval, y1y2.y
+#----------------------------------------------------------------------------------------#

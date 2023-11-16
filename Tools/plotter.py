@@ -26,13 +26,14 @@ plt.rc('text',  usetex=True)
 #       bins: choose the number of bins, default: auto
 #       label_set: if showing legends, default: yes
 #       merge_f: if show the given pdf curve, default: false
-def hist_plot(Pth, pic_name, x, xlabel, exact=None, bins='auto', label_set=0, merge_f = False):
+#       posterior: if not none, centeralize the posterior value
+def hist_plot(Pth, pic_name, x, xlabel, exact=None, bins='auto', label_set=0, merge_f = False, posterior=None):
 	
 	# create path if not exist
 	os.makedirs(Pth,exist_ok = True)
 
 	# start plotting
-	fig = plt.figure(figsize=(4, 4))
+	fig, ax = plt.subplots(figsize=(4, 4))
 	# if show legend
 	if label_set != None:
 		n, bins, patches = plt.hist(x, bins=bins, density=True, color='r', alpha = 0.5, label= 'NN')
@@ -44,6 +45,10 @@ def hist_plot(Pth, pic_name, x, xlabel, exact=None, bins='auto', label_set=0, me
 	if merge_f == True:
 		x = np.linspace(-4, 4, 1000)
 		plt.plot(x, norm.pdf(x), 'k--', linewidth = 2, label = r'$\mathcal{N}(0,1)$')
+
+	# if show posterior value
+	if posterior != None:
+		ax.axvline(x=posterior, linestyle ='--' ,color='k')
 
 	plt.grid('on')
 	plt.xlabel(xlabel,fontsize=fs+6)
@@ -297,3 +302,63 @@ def check_sine_wave(fig_name, X, x, y_fix):
 	return 0
 #--------------------------------------------------------------------------#
 
+
+
+# -------------------------------------------------------------------------- #
+# Check the Lotka-Volterra system if the inverse prediction and emulator approximation make sense
+# Inputs:
+# 	X: inverse predictions of alpha, beta, delta and gamma
+# 	y_fix: fixed y value
+#   y_hat: predicted y by the trained emulator
+#   fig_name: saving name of the picture
+def LV_dynamics_verification(X, y_fix, y_hat, fig_name):
+
+	fig, ax = plt.subplots(2,1,figsize=(10, 12))
+
+	# loop tho the inverse predictions
+	for i in range(len(X)):
+
+		alpha_, beta_, delta_, gamma_   = X[i,0], X[i,1], X[i,2], X[i,3]
+
+		# forward exact dynamics
+		t_eval, y_eval  =  check_LV_dynamics(alpha_, beta_, delta_, gamma_)
+		cut_off = int(len(t_eval)*9/10) # only plot the last 1/10
+		
+		# plot y1_y2 trajectories, true numerical solutions
+		if i == 1:
+			ax[0].plot(t_eval[cut_off:], y_eval[0,cut_off:], color='k' , \
+					linewidth=1, label = r'$\textrm{RK4 from}\ \widehat{\boldsymbol{v}}$', alpha = 0.5)
+			ax[1].plot(t_eval[cut_off:], y_eval[1,cut_off:], color='k' , \
+					linewidth=1, label = r'$\textrm{RK4 from}\ \widehat{\boldsymbol{v}}$', alpha = 0.5)
+		else:
+			ax[0].plot(t_eval[cut_off:], y_eval[0,cut_off:], color='k' , linewidth=1, alpha = 0.5)
+			ax[1].plot(t_eval[cut_off:], y_eval[1,cut_off:], color='k' , linewidth=1, alpha = 0.5)
+
+		# emulator predictions
+		if i == 1:
+			ax[0].axhline(y= y_hat[i,0], color='b', linestyle='--', label = r'$\widehat{y}_{1,\max}$', alpha = 0.5) 
+			ax[1].axhline(y= y_hat[i,1], color='b', linestyle='--', label = r'$\widehat{y}_{2,\max}$', alpha = 0.5)  
+		else:
+			ax[0].axhline(y= y_hat[i,0], color='b', linestyle='--', alpha = 0.5) 
+			ax[1].axhline(y= y_hat[i,1], color='b', linestyle='--', alpha = 0.5) 
+
+	# plot fixed y
+	ax[0].axhline(y=y_fix[0,0], linewidth=2, color='k', linestyle='-.', label = r'$y_{1,\max}^*$' )
+	ax[1].axhline(y=y_fix[0,1], linewidth=2, color='k', linestyle='-.', label = r'$y_{2,\max}^*$' )
+
+	# labels
+	ax[0].set_ylabel('$y_1$', fontsize = fs + 12)
+	ax[1].set_ylabel('$y_2$', fontsize = fs + 12)
+
+	# other args
+	for _ in [1,2]:
+		plt.subplot(2,1,_)
+		plt.xlabel('$t$', fontsize=fs+12)
+		plt.xlim([t_eval[cut_off:].min(), t_eval[cut_off:].max()])
+		plt.tick_params(labelsize=fs+6)
+		plt.legend(fontsize=fs+4)
+		plt.grid()
+
+	plt.savefig(fig_name, bbox_inches='tight',pad_inches = 0)
+	return 0
+# -------------------------------------------------------------------------- #
