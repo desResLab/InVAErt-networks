@@ -20,6 +20,7 @@ For additional information, please refer to the publication below:
 2. ```Single_sine_wave.ipynb```: Section 4.2 of the paper. Study of a simple nonlinear system: sine waves without periodicity.
 3. ```Sine_Waves.ipynb```: Section 4.2 of the paper. Study of the former sine waves problem with periodicity.
 4. ```RCR.ipynb```: Section 4.3 of the paper. Study of the non-identifiable three-element (R-C-R) Windkessel model.
+5. ```Lotka-Volterra.ipynb```: Additional example, not in the paper. Study of the predator-prey model.
 
 ### Please stay tuned for the more Jupyter Notebook tutorials!
 Note: the Jupyter notebooks are created for illustration purposes thus the hyper-parameters are adjusted for swift and efficient execution. For more accurate results, we recommend running the code locally with fine-tuned hyper-parameters. Suggested hyper-parameters can be found in the appendix of the paper.
