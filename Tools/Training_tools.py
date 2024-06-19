@@ -480,17 +480,15 @@ class Training:
 
 				#==========================================================================================#
 				# if imposing the re-constraint loss Lr, this is so called the knowledge distill
-				if EN != None:
-					with torch.no_grad(): # no gradient calculation for EN since it is already trained
-						
-						# cat prediction and true aux data
-						X_hat_encoding          = torch.cat(( X_hat, X_aux  ),dim=1)
-						# forward the trained emulator
-						Y_hat                   = EN(X_hat_encoding, residual=residual, res_num=Y.shape[1])
-						# re-evaluate the mse forward loss
-						Loss_encoding_again     = Emeasure(Y_hat, Y)
-						# keep track of the loss
-						train_encoder_again += Loss_encoding_again
+				if EN != None:	
+					# cat prediction and true aux data
+					X_hat_encoding          = torch.cat(( X_hat, X_aux  ),dim=1)
+					# forward the trained emulator
+					Y_hat                   = EN(X_hat_encoding, residual=residual, res_num=Y.shape[1])
+					# re-evaluate the mse forward loss
+					Loss_encoding_again     = Emeasure(Y_hat, Y)
+					# keep track of the loss
+					train_encoder_again += Loss_encoding_again
 				#==========================================================================================#
 
 				# keep track of the losses

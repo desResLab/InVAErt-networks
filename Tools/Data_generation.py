@@ -296,14 +296,14 @@ def Data_PredPrey(Sample_size, Alpha, Beta, Delta, Gamma, Saving, Seed = 0):
 
 		# solve the system 
 		# ----------------------------------------------------------- #
-		state0  = [10.0, 10.0]               # initial condition
-		t_f     = 100                        # final time
-		t_range = [0.0, t_f]                 # total time span to be solved
-		num_t   = 5000                       # total number of time steps 
+		state0  = [1.0, 1.0]               # initial condition
+		t_f     = 200                        # final time
+		t_range = [0.0, t_f+0.1]                 # total time span to be solved
+		num_t   = 8000                       # total number of time steps 
 		t_eval  = np.linspace(0, t_f, num_t) # output time steps
 
 		# call ivp solver, using 4th order Runge-Kutta
-		y1y2    = solve_ivp(f, t_range, state0, method='RK45', t_eval=t_eval)
+		y1y2    = solve_ivp(f, t_range, state0, method='Radau', t_eval=t_eval, rtol = 1e-4)
 
 		# access solution and only extract the final 1/3 cycles, i.e. when solution is stable
 		sol = y1y2.y[:,round(2*num_t/3):]
@@ -334,10 +334,10 @@ def check_LV_dynamics(alpha, beta, delta, gamma):
 
 	# solve the system 
 	# ----------------------------------------------------------- #
-	state0  = [10.0, 10.0]               # initial condition
-	t_f     = 100                        # final time
-	t_range = [0.0, t_f]                 # total time span to be solved
-	num_t   = 5000                       # total number of time steps 
+	state0  = [1.0, 1.0]               # initial condition
+	t_f     = 200                        # final time
+	t_range = [0.0, t_f+0.1]                 # total time span to be solved
+	num_t   = 8000                       # total number of time steps 
 	t_eval  = np.linspace(0, t_f, num_t) # output time steps
 	# ----------------------------------------------------------- #
 
@@ -353,7 +353,6 @@ def check_LV_dynamics(alpha, beta, delta, gamma):
 	# ----------------------------------------------------------- #
 
 	# solve
-	y1y2    = solve_ivp(f, t_range, state0, method='RK45', t_eval=t_eval)
-
+	y1y2    = solve_ivp(f, t_range, state0, method='Radau', t_eval=t_eval, rtol = 1e-4)
 	return t_eval, y1y2.y
 #----------------------------------------------------------------------------------------#
