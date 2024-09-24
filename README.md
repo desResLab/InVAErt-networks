@@ -38,3 +38,12 @@ Did you find this useful? Please cite us using:
   publisher={Elsevier}
 }
 ```
+
+### Recommended dependencies:
+- ```Pytorch```: 2.4.1
+- ```CUDA```: 11.8
+- ```Python```: 3.10.12
+- ```numpy```: 1.26.4
+- ```scipy```: 1.12.0
+- ```matplotlib```: 3.9.2
+- ```mpi4py```: 4.0.0
